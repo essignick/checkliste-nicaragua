@@ -607,7 +607,9 @@
         });
 
         function addItem(button) {
-            const category = button.parentElement.nextElementSibling;
+            // Find the parent .category div, then its <ul>
+            const categoryDiv = button.closest('.category');
+            const ul = categoryDiv.querySelector('ul');
             const itemName = prompt('Neues Item eingeben:');
             if (itemName) {
                 const li = document.createElement('li');
@@ -662,7 +664,15 @@
                 li.appendChild(itemContent);
                 li.appendChild(deleteBtn);
                 
-                category.appendChild(li);
-                updateCounter(); // Update the counter after adding a new item
+                ul.appendChild(li);
+                updateCounter();
             }
         }
+
+        function deleteItem(button) {
+            button.closest('li').remove();
+            updateCounter();
+        }
+    </script>
+</body>
+</html>
