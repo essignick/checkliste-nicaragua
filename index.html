@@ -585,94 +585,184 @@
     </main>
 
     <script>
-        function updateCounter() {
-            const totalItems = document.querySelectorAll('.melia-checkbox').length;
-            const meliaChecked = document.querySelectorAll('.melia-checkbox:checked').length;
-            const nicklasChecked = document.querySelectorAll('.nicklas-checkbox:checked').length;
-            
-            document.getElementById('counter').innerHTML = `
-                Erledigte Items:<br>
-                Melia: ${meliaChecked} / ${totalItems} | 
-                Nicklas: ${nicklasChecked} / ${totalItems}
-            `;
-        }
-
-        document.querySelectorAll('input[type="checkbox"]').forEach(box => box.addEventListener('change', updateCounter));
-
-        document.getElementById('search').addEventListener('input', function() {
-            const filter = this.value.toLowerCase();
-            document.querySelectorAll('li').forEach(li => {
-                li.style.display = li.textContent.toLowerCase().includes(filter) ? '' : 'none';
+        // Helper: Serialize the checklist state
+function saveChecklist() {
+    const categories = [];
+    document.querySelectorAll('.category').forEach(categoryDiv => {
+        const category = {
+            name: categoryDiv.querySelector('h2').childNodes[0].textContent.trim(),
+            items: []
+        };
+        categoryDiv.querySelectorAll('ul > li').forEach(li => {
+            category.items.push({
+                text: li.querySelector('.item-text').textContent,
+                melia: li.querySelector('.melia-checkbox').checked,
+                nicklas: li.querySelector('.nicklas-checkbox').checked
             });
         });
+        categories.push(category);
+    });
+    localStorage.setItem('checklistNicaragua', JSON.stringify(categories));
+}
 
-        function addItem(button) {
-            // Find the parent .category div, then its <ul>
-            const categoryDiv = button.closest('.category');
-            const ul = categoryDiv.querySelector('ul');
-            const itemName = prompt('Neues Item eingeben:');
-            if (itemName) {
-                const li = document.createElement('li');
-                
-                const itemContent = document.createElement('div');
-                itemContent.className = 'item-content';
-                
-                const itemText = document.createElement('div');
-                itemText.className = 'item-text';
-                itemText.textContent = itemName;
-                
-                const checkboxSection = document.createElement('div');
-                checkboxSection.className = 'checkbox-section';
-                
-                // Melia Checkbox
-                const meliaGroup = document.createElement('div');
-                meliaGroup.className = 'checkbox-group';
-                const meliaLabel = document.createElement('div');
-                meliaLabel.className = 'checkbox-label';
-                meliaLabel.textContent = 'Melia';
-                const meliaCheckbox = document.createElement('input');
-                meliaCheckbox.type = 'checkbox';
-                meliaCheckbox.className = 'melia-checkbox';
-                meliaCheckbox.addEventListener('change', updateCounter);
-                meliaGroup.appendChild(meliaLabel);
-                meliaGroup.appendChild(meliaCheckbox);
-                
-                // Nicklas Checkbox
-                const nicklasGroup = document.createElement('div');
-                nicklasGroup.className = 'checkbox-group';
-                const nicklasLabel = document.createElement('div');
-                nicklasLabel.className = 'checkbox-label';
-                nicklasLabel.textContent = 'Nicklas';
-                const nicklasCheckbox = document.createElement('input');
-                nicklasCheckbox.type = 'checkbox';
-                nicklasCheckbox.className = 'nicklas-checkbox';
-                nicklasCheckbox.addEventListener('change', updateCounter);
-                nicklasGroup.appendChild(nicklasLabel);
-                nicklasGroup.appendChild(nicklasCheckbox);
-                
-                checkboxSection.appendChild(meliaGroup);
-                checkboxSection.appendChild(nicklasGroup);
-                
-                itemContent.appendChild(itemText);
-                itemContent.appendChild(checkboxSection);
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = '×';
-                deleteBtn.onclick = function() { deleteItem(this); };
-                
-                li.appendChild(itemContent);
-                li.appendChild(deleteBtn);
-                
-                ul.appendChild(li);
-                updateCounter();
-            }
-        }
+// Helper: Restore the checklist state
+function loadChecklist() {
+    const data = localStorage.getItem('checklistNicaragua');
+    if (!data) return;
+    const categories = JSON.parse(data);
+    document.querySelectorAll('.category').forEach((categoryDiv, i) => {
+        const ul = categoryDiv.querySelector('ul');
+        ul.innerHTML = '';
+        if (!categories[i]) return;
+        categories[i].items.forEach(item => {
+            const li = document.createElement('li');
+            const itemContent = document.createElement('div');
+            itemContent.className = 'item-content';
+            const itemText = document.createElement('div');
+            itemText.className = 'item-text';
+            itemText.textContent = item.text;
+            const checkboxSection = document.createElement('div');
+            checkboxSection.className = 'checkbox-section';
 
-        function deleteItem(button) {
-            button.closest('li').remove();
-            updateCounter();
-        }
+            // Melia
+            const meliaGroup = document.createElement('div');
+            meliaGroup.className = 'checkbox-group';
+            const meliaLabel = document.createElement('div');
+            meliaLabel.className = 'checkbox-label';
+            meliaLabel.textContent = 'Melia';
+            const meliaCheckbox = document.createElement('input');
+            meliaCheckbox.type = 'checkbox';
+            meliaCheckbox.className = 'melia-checkbox';
+            meliaCheckbox.checked = item.melia;
+            meliaCheckbox.addEventListener('change', () => { updateCounter(); saveChecklist(); });
+            meliaGroup.appendChild(meliaLabel);
+            meliaGroup.appendChild(meliaCheckbox);
+
+            // Nicklas
+            const nicklasGroup = document.createElement('div');
+            nicklasGroup.className = 'checkbox-group';
+            const nicklasLabel = document.createElement('div');
+            nicklasLabel.className = 'checkbox-label';
+            nicklasLabel.textContent = 'Nicklas';
+            const nicklasCheckbox = document.createElement('input');
+            nicklasCheckbox.type = 'checkbox';
+            nicklasCheckbox.className = 'nicklas-checkbox';
+            nicklasCheckbox.checked = item.nicklas;
+            nicklasCheckbox.addEventListener('change', () => { updateCounter(); saveChecklist(); });
+            nicklasGroup.appendChild(nicklasLabel);
+            nicklasGroup.appendChild(nicklasCheckbox);
+
+            checkboxSection.appendChild(meliaGroup);
+            checkboxSection.appendChild(nicklasGroup);
+
+            itemContent.appendChild(itemText);
+            itemContent.appendChild(checkboxSection);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '×';
+            deleteBtn.onclick = function() { deleteItem(this); };
+
+            li.appendChild(itemContent);
+            li.appendChild(deleteBtn);
+
+            ul.appendChild(li);
+        });
+    });
+    updateCounter();
+}
+
+// Update all event handlers to save after change
+function updateCounter() {
+    const totalItems = document.querySelectorAll('.melia-checkbox').length;
+    const meliaChecked = document.querySelectorAll('.melia-checkbox:checked').length;
+    const nicklasChecked = document.querySelectorAll('.nicklas-checkbox:checked').length;
+    document.getElementById('counter').innerHTML = `
+        Erledigte Items:<br>
+        Melia: ${meliaChecked} / ${totalItems} | 
+        Nicklas: ${nicklasChecked} / ${totalItems}
+    `;
+    saveChecklist();
+}
+
+// Update addItem and deleteItem to save after change
+function addItem(button) {
+    const categoryDiv = button.closest('.category');
+    const ul = categoryDiv.querySelector('ul');
+    const itemName = prompt('Neues Item eingeben:');
+    if (itemName) {
+        const li = document.createElement('li');
+        const itemContent = document.createElement('div');
+        itemContent.className = 'item-content';
+        const itemText = document.createElement('div');
+        itemText.className = 'item-text';
+        itemText.textContent = itemName;
+        const checkboxSection = document.createElement('div');
+        checkboxSection.className = 'checkbox-section';
+
+        // Melia Checkbox
+        const meliaGroup = document.createElement('div');
+        meliaGroup.className = 'checkbox-group';
+        const meliaLabel = document.createElement('div');
+        meliaLabel.className = 'checkbox-label';
+        meliaLabel.textContent = 'Melia';
+        const meliaCheckbox = document.createElement('input');
+        meliaCheckbox.type = 'checkbox';
+        meliaCheckbox.className = 'melia-checkbox';
+        meliaCheckbox.addEventListener('change', () => { updateCounter(); saveChecklist(); });
+        meliaGroup.appendChild(meliaLabel);
+        meliaGroup.appendChild(meliaCheckbox);
+
+        // Nicklas Checkbox
+        const nicklasGroup = document.createElement('div');
+        nicklasGroup.className = 'checkbox-group';
+        const nicklasLabel = document.createElement('div');
+        nicklasLabel.className = 'checkbox-label';
+        nicklasLabel.textContent = 'Nicklas';
+        const nicklasCheckbox = document.createElement('input');
+        nicklasCheckbox.type = 'checkbox';
+        nicklasCheckbox.className = 'nicklas-checkbox';
+        nicklasCheckbox.addEventListener('change', () => { updateCounter(); saveChecklist(); });
+        nicklasGroup.appendChild(nicklasLabel);
+        nicklasGroup.appendChild(nicklasCheckbox);
+
+        checkboxSection.appendChild(meliaGroup);
+        checkboxSection.appendChild(nicklasGroup);
+
+        itemContent.appendChild(itemText);
+        itemContent.appendChild(checkboxSection);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.onclick = function() { deleteItem(this); };
+
+        li.appendChild(itemContent);
+        li.appendChild(deleteBtn);
+
+        ul.appendChild(li);
+        updateCounter();
+        saveChecklist();
+    }
+}
+
+function deleteItem(button) {
+    button.closest('li').remove();
+    updateCounter();
+    saveChecklist();
+}
+
+// On page load, restore checklist
+window.addEventListener('DOMContentLoaded', () => {
+    loadChecklist();
+    // Re-attach search event
+    document.getElementById('search').addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        document.querySelectorAll('li').forEach(li => {
+            li.style.display = li.textContent.toLowerCase().includes(filter) ? '' : 'none';
+        });
+    });
+});
     </script>
 </body>
 </html>
